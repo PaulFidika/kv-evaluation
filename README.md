@@ -1,6 +1,16 @@
+Redis transaction methods: (1) Watch with Multi/exec (optimistic lock). (2) Incrby (atomic increments), (3) Lua scripting (server side execution), (4) SetNX (acquire a lock).
+
+For correctness, storing complicated values (like JSON), and low-contention workloads, SetNX + retrying is the best solution.
+
+For simple integer-data, if correctness is not super important, then Incrby + Pipe is the best solution.
+
+Garnet is, overall, the best Redis-replacement.
+
+---
+
 Garnet (Redis) Results:
 
-- Using a 'watch' (optimistic lock), it takes 4 - 8.5 seconds to run 1,000 updates on 1 key, with a 95th-percnetile latency of 282ms (for one write). This is because of all the concurrent writes interering with each other.
+- Using WATCH/MULTI (an optimistic lock), it takes 4 - 8.5 seconds to run 1,000 updates on 1 key, with a 95th-percentile latency of 282ms (for one write). This is because of all the concurrent writes interering with each other.
 
 - If you do not retry from fails (with optimistic locks), then you can do about 169 / 1,000 updates in 450ms. Therefore, Redis' optimistic locking is really only useful in low-contention workloads.
 
@@ -8,13 +18,11 @@ Garnet (Redis) Results:
 
 - Incrby does not require retrying.
 
-- Lua scirpts are not recommended due to poor performance, and Garnet disables them by default.
+- Lua scripts are not recommended due to poor performance, and Garnet disables them by default.
 
-- The SetNX lock system works better than 'watch', as you would expect. It takes 3.5 seconds to to do 1000 reads + sets on a single key.
+- The SetNX lock system works better than 'watch', as you would expect. It takes 3 - 4 seconds to to do 1000 reads + sets on a single key, with 95th percentile latency of 74ms.
 
 - These tests were done running on localhost; running remotely might be much slower due to all the retries; this only applies for the lock-acquiring however.
-
-- Redis methods: (1) Watch with Multi/exec (optimistic lock). (2) Incrby (atomic increments), (3) Lua scripting (server side execution), (4) SetNX (acquire a lock).
 
 ---
 
